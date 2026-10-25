@@ -1,0 +1,518 @@
+<section class="page editor rise">
+  <header class="editor-head">
+    <div>
+      <a class="back" routerLink="/"><span aria-hidden="true">←</span> Obras</a>
+      <p class="eyebrow">{{ isEdit() ? 'Editar presupuesto' : 'Nuevo presupuesto' }}</p>
+      <h1>{{ isEdit() ? 'Ajusta tu obra' : 'Arma tu obra' }}</h1>
+      <p class="sub">
+        Describe las partidas y carga los precios que tú conoces. El cálculo de materiales y mano
+        de obra se hace al instante.
+      </p>
+    </div>
+
+    <div class="head-actions">
+      @if (saving()) {
+        <span class="status mono">Guardando…</span>
+      } @else if (notice()) {
+        <span class="status status-ok mono">Guardado ✓</span>
+      }
+      <button
+        class="btn btn-sm"
+        type="button"
+        (click)="estimatePrices()"
+        [disabled]="estimating() || saving() || loading()"
+      >
+        {{ estimating() ? 'Estimando precios...' : 'Estimar precios con IA' }}
+      </button>
+      <button
+        class="btn btn-sm btn-ghost"
+        type="button"
+        (click)="printBudget()"
+      >
+        Imprimir presupuesto
+      </button>
+      <button
+        class="btn btn-primary head-save"
+        type="button"
+        (click)="save()"
+        [disabled]="saving() || loading()"
+      >
+        {{ isEdit() ? 'Guardar cambios' : 'Guardar obra' }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="loading card">
+      <span class="loader" aria-hidden="true"></span>
+      <p class="mono">Cargando la obra…</p>
+    </div>
+  } @else {
+    <div class="editor-grid">
+      <form class="editor-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        @if (error()) {
+          <p class="form-error" role="alert">{{ error() }}</p>
+        }
+        @if (notice()) {
+          <p class="form-ok" role="status">{{ notice() }}</p>
+        }
+
+        <section class="card block">
+          <div class="block-head">
+            <div>
+              <p class="eyebrow">IA</p>
+              <h2>Generar presupuesto con IA</h2>
+            </div>
+          </div>
+          <div class="field span-2">
+            <label for="ai-description">Describe el trabajo</label>
+            <textarea
+              id="ai-description"
+              class="input"
+              [value]="generationPrompt()"
+              (input)="generationPrompt.set($any($event.target).value)"
+              placeholder="Ej. pintar pared de 6 metros de ancho por 3 de altura"
+            ></textarea>
+          </div>
+          <button
+            class="btn btn-sm"
+            type="button"
+            (click)="generateWork()"
+            [disabled]="generating() || saving() || loading()"
+          >
+            {{ generating() ? 'Generando...' : 'Generar con IA' }}
+          </button>
+        </section>
+
+        <section class="card block">
+          <div class="block-head">
+            <div>
+              <p class="eyebrow">Ficha</p>
+              <h2>Datos de la obra</h2>
+            </div>
+            <span class="badge">{{ isEdit() ? 'Guardada' : 'Sin guardar' }}</span>
+          </div>
+
+          <div class="general-grid">
+            <div class="field span-2">
+              <label for="work-name">Nombre de la obra *</label>
+              <input
+                id="work-name"
+                class="input"
+                type="text"
+                formControlName="name"
+                placeholder="Ej. Casa lote 12 — Villa del Sur"
+              />
+              @if (form.controls.name.touched && form.controls.name.invalid) {
+                <span class="error-text">El nombre de la obra es obligatorio.</span>
+              }
+            </div>
+
+            <div class="field">
+              <label for="work-client">Cliente</label>
+              <input
+                id="work-client"
+                class="input"
+                type="text"
+                formControlName="clientName"
+                placeholder="Ej. Familia Pérez"
+              />
+            </div>
+
+            <div class="field">
+              <label for="work-location">Ubicación</label>
+              <input
+                id="work-location"
+                class="input"
+                type="text"
+                formControlName="location"
+                placeholder="Ej. Soacha, Cundinamarca"
+              />
+            </div>
+
+            <div class="field span-2">
+              <label for="work-description">Descripción general</label>
+              <textarea
+                id="work-description"
+                class="input"
+                formControlName="description"
+                placeholder="Alcance, condiciones o acuerdos importantes de la obra."
+              ></textarea>
+            </div>
+          </div>
+        </section>
+
+        <div class="items-head">
+          <div>
+            <p class="eyebrow">Partidas</p>
+            <h2>Trabajos de la obra</h2>
+          </div>
+          <button class="btn btn-sm" type="button" (click)="addItem()">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Partida
+          </button>
+        </div>
+
+        <div class="item-stack" formArrayName="items">
+          @for (item of items.controls; track item; let i = $index) {
+            <article class="item card" [formGroupName]="i">
+              <header class="item-head">
+                <span class="item-index mono">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                <div class="item-head-copy">
+                  <h3>{{ item.get('name')?.value || 'Partida sin nombre' }}</h3>
+                  <p class="mono">
+                    {{ item.get('quantity')?.value || 0 }} {{ item.get('unit')?.value || 'un' }}
+                    <span aria-hidden="true">·</span>
+                    desperdicio {{ item.get('wastePercent')?.value || 0 }}%
+                  </p>
+                </div>
+                <button
+                  class="item-remove"
+                  type="button"
+                  (click)="removeItem(i)"
+                  [attr.aria-label]="'Quitar la partida ' + (i + 1)"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </header>
+
+              <div class="item-fields">
+                <div class="field item-name">
+                  <label [attr.for]="'item-name-' + i">Partida *</label>
+                  <input
+                    [id]="'item-name-' + i"
+                    class="input"
+                    type="text"
+                    formControlName="name"
+                    placeholder="Ej. Muro en bloque"
+                  />
+                  @if (item.get('name')?.touched && item.get('name')?.invalid) {
+                    <span class="error-text">Ponle nombre a la partida.</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label [attr.for]="'item-unit-' + i">Unidad</label>
+                  <input
+                    [id]="'item-unit-' + i"
+                    class="input"
+                    type="text"
+                    formControlName="unit"
+                    list="units"
+                    placeholder="m2"
+                  />
+                </div>
+
+                <div class="field">
+                  <label [attr.for]="'item-qty-' + i">Cantidad *</label>
+                  <input
+                    [id]="'item-qty-' + i"
+                    class="input mono"
+                    type="number"
+                    min="0.0001"
+                    step="0.01"
+                    formControlName="quantity"
+                  />
+                  @if (item.get('quantity')?.touched && item.get('quantity')?.invalid) {
+                    <span class="error-text">Debe ser mayor que cero.</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label [attr.for]="'item-waste-' + i">Desperdicio %</label>
+                  <input
+                    [id]="'item-waste-' + i"
+                    class="input mono"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    formControlName="wastePercent"
+                  />
+                </div>
+
+                <div class="field item-notes">
+                  <label [attr.for]="'item-notes-' + i">Notas / especificaciones</label>
+                  <input
+                    [id]="'item-notes-' + i"
+                    class="input"
+                    type="text"
+                    formControlName="notes"
+                    placeholder="Ej. Bloque de 15x20x40, pega 1:5"
+                  />
+                </div>
+              </div>
+
+              <div class="lines">
+                <section class="line-block">
+                  <header class="line-head">
+                    <h4><i class="dot dot-material"></i> Materiales</h4>
+                    <button class="btn btn-sm btn-ghost" type="button" (click)="addMaterial(item)">
+                      + Material
+                    </button>
+                  </header>
+
+                  @if (materials(item).length === 0) {
+                    <p class="line-empty">
+                      Sin materiales todavía. Agrega el primero con su consumo y precio.
+                    </p>
+                  } @else {
+                    <div class="line-table" formArrayName="materials">
+                      <div class="line-table-head">
+                        <span>Material</span>
+                        <span>Unidad</span>
+                        <span>Cant. / unidad</span>
+                        <span>Precio unitario</span>
+                        <span>Subtotal</span>
+                        <span></span>
+                      </div>
+
+                      @for (material of materials(item).controls; track material; let j = $index) {
+                        <div class="line-row" [formGroupName]="j">
+                          <input
+                            class="input"
+                            type="text"
+                            formControlName="description"
+                            placeholder="Ej. Bloque 15x20x40"
+                            [attr.aria-label]="'Descripción del material ' + (j + 1)"
+                          />
+                          <input
+                            class="input"
+                            type="text"
+                            formControlName="unit"
+                            list="units"
+                            placeholder="und"
+                            [attr.aria-label]="'Unidad del material ' + (j + 1)"
+                          />
+                          <input
+                            class="input mono"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            formControlName="quantityPerUnit"
+                            [attr.aria-label]="'Cantidad por unidad del material ' + (j + 1)"
+                          />
+                          <input
+                            class="input mono"
+                            type="number"
+                            min="0"
+                            step="100"
+                            formControlName="unitPrice"
+                            [attr.aria-label]="'Precio unitario del material ' + (j + 1)"
+                          />
+                          <span class="line-total mono">{{
+                            calculation().items[i]?.materials?.[j]?.lineTotal | money
+                          }}</span>
+                          <button
+                            class="line-del"
+                            type="button"
+                            (click)="removeMaterial(item, j)"
+                            [attr.aria-label]="'Quitar material ' + (j + 1)"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M6 6l12 12M18 6L6 18" />
+                            </svg>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </section>
+
+                <section class="line-block">
+                  <header class="line-head">
+                    <h4><i class="dot dot-labor"></i> Mano de obra</h4>
+                    <button class="btn btn-sm btn-ghost" type="button" (click)="addLabor(item)">
+                      + Mano de obra
+                    </button>
+                  </header>
+
+                  @if (labors(item).length === 0) {
+                    <p class="line-empty">
+                      Sin mano de obra todavía. Agrega el rendimiento y la tarifa que vas a pagar.
+                    </p>
+                  } @else {
+                    <div class="line-table" formArrayName="labors">
+                      <div class="line-table-head">
+                        <span>Actividad</span>
+                        <span>Unidad</span>
+                        <span>Cant. / unidad</span>
+                        <span>Tarifa unitaria</span>
+                        <span>Subtotal</span>
+                        <span></span>
+                      </div>
+
+                      @for (labor of labors(item).controls; track labor; let j = $index) {
+                        <div class="line-row" [formGroupName]="j">
+                          <input
+                            class="input"
+                            type="text"
+                            formControlName="description"
+                            placeholder="Ej. Cuadrilla de albañilería"
+                            [attr.aria-label]="'Descripción de mano de obra ' + (j + 1)"
+                          />
+                          <input
+                            class="input"
+                            type="text"
+                            formControlName="unit"
+                            list="units"
+                            placeholder="h"
+                            [attr.aria-label]="'Unidad de mano de obra ' + (j + 1)"
+                          />
+                          <input
+                            class="input mono"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            formControlName="quantityPerUnit"
+                            [attr.aria-label]="'Cantidad por unidad de mano de obra ' + (j + 1)"
+                          />
+                          <input
+                            class="input mono"
+                            type="number"
+                            min="0"
+                            step="100"
+                            formControlName="unitRate"
+                            [attr.aria-label]="'Tarifa de mano de obra ' + (j + 1)"
+                          />
+                          <span class="line-total mono">{{
+                            calculation().items[i]?.labors?.[j]?.lineTotal | money
+                          }}</span>
+                          <button
+                            class="line-del"
+                            type="button"
+                            (click)="removeLabor(item, j)"
+                            [attr.aria-label]="'Quitar mano de obra ' + (j + 1)"
+                          >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M6 6l12 12M18 6L6 18" />
+                            </svg>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </section>
+              </div>
+
+              <footer class="item-foot">
+                <span class="mono">Total partida</span>
+                <div class="item-foot-numbers">
+                  <span class="unit-total mono">
+                    {{ calculation().items[i]?.unitTotal | money }} / {{ item.get('unit')?.value }}
+                  </span>
+                  <strong class="mono">{{ calculation().items[i]?.total | money }}</strong>
+                </div>
+              </footer>
+            </article>
+          } @empty {
+            <div class="empty empty-small">
+              <h3>Agrega la primera partida</h3>
+              <p class="muted">Una partida es un trabajo concreto: muro, piso, pintura, plomería…</p>
+              <button class="btn btn-primary" type="button" (click)="addItem()">
+                Crear partida
+              </button>
+            </div>
+          }
+        </div>
+      </form>
+
+      <aside class="summary">
+        <div class="card summary-card">
+          <div class="summary-top">
+            <p class="eyebrow">Resumen de costos</p>
+            <p class="summary-total mono">{{ calculation().total | money }}</p>
+            <p class="summary-caption">Precio calculado de la obra</p>
+          </div>
+
+          <div class="split-bar" aria-hidden="true">
+            <span class="mat" [style.width.%]="calculation().materialShare"></span>
+            <span class="lab" [style.width.%]="calculation().laborShare"></span>
+          </div>
+
+          <dl class="summary-rows">
+            <div class="summary-row">
+              <dt><i class="dot dot-material"></i> Materiales</dt>
+              <dd class="mono">{{ calculation().materialTotal | money }}</dd>
+              <span class="pct mono">{{ calculation().materialShare }}%</span>
+            </div>
+            <div class="summary-row">
+              <dt><i class="dot dot-labor"></i> Mano de obra</dt>
+              <dd class="mono">{{ calculation().laborTotal | money }}</dd>
+              <span class="pct mono">{{ calculation().laborShare }}%</span>
+            </div>
+            <div class="summary-row summary-count">
+              <dt>Partidas</dt>
+              <dd class="mono">{{ calculation().itemCount }}</dd>
+              <span class="pct mono">ítems</span>
+            </div>
+          </dl>
+
+          <div class="summary-items">
+            <p class="field-label">Desglose por partida</p>
+            @for (item of calculation().items; track $index) {
+              <div class="summary-item">
+                <span>{{ item.name || 'Partida ' + ($index + 1) }}</span>
+                <b class="mono">{{ item.total | money }}</b>
+              </div>
+            } @empty {
+              <p class="hint">Agrega partidas para ver el desglose.</p>
+            }
+          </div>
+
+          <button
+            class="btn btn-primary btn-block"
+            type="button"
+            (click)="save()"
+            [disabled]="saving()"
+          >
+            {{ saving() ? 'Guardando…' : isEdit() ? 'Guardar cambios' : 'Guardar obra' }}
+          </button>
+
+          @if (isEdit()) {
+            <button
+              class="btn btn-danger btn-block"
+              type="button"
+              (click)="removeWork()"
+              [disabled]="saving()"
+            >
+              Eliminar obra
+            </button>
+          }
+
+          <p class="summary-note">
+            El cálculo se actualiza mientras escribes. Al guardar, el servidor recalcula y
+            confirma los totales.
+          </p>
+        </div>
+
+        <div class="summary-tip">
+          <p class="eyebrow">Cómo se calcula</p>
+          <p>
+            <strong>Materiales:</strong> cantidad × consumo por unidad × (1 + desperdicio).
+            <br />
+            <strong>Mano de obra:</strong> cantidad × rendimiento × tarifa.
+          </p>
+        </div>
+      </aside>
+    </div>
+  }
+
+  <datalist id="units">
+    <option value="m2"></option>
+    <option value="m3"></option>
+    <option value="ml"></option>
+    <option value="un"></option>
+    <option value="kg"></option>
+    <option value="bulto"></option>
+    <option value="galón"></option>
+    <option value="h"></option>
+    <option value="día"></option>
+    <option value="global"></option>
+    <option value="viaje"></option>
+  </datalist>
+</section>

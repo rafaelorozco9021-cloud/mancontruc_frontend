@@ -1,0 +1,144 @@
+<section class="page dashboard rise">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Panel de obras</p>
+      <h1>Hola, {{ firstName() }}.</h1>
+      <p class="sub">
+        Materiales por un lado, mano de obra por el otro. Así sabes exactamente en qué se va la
+        plata de tu obra.
+      </p>
+    </div>
+    <a class="btn btn-primary new-work" routerLink="/obras/nueva">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      Nueva obra
+    </a>
+  </header>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <div class="stats" aria-hidden="true">
+      @for (item of [1, 2, 3, 4]; track item) {
+        <div class="stat card skeleton"></div>
+      }
+    </div>
+    <div class="works-loading" aria-hidden="true">
+      <div class="skeleton-row"></div>
+      <div class="skeleton-row"></div>
+    </div>
+  } @else {
+    <div class="stats">
+      <article class="stat card">
+        <p class="stat-label">Obras registradas</p>
+        <p class="stat-value">{{ works().length }}</p>
+        <p class="stat-note">Presupuestos guardados</p>
+      </article>
+
+      <article class="stat card">
+        <p class="stat-label"><i class="dot dot-material"></i> Materiales</p>
+        <p class="stat-value">{{ totals().material | money }}</p>
+        <p class="stat-note">{{ share(totals().material, totals().total) }}% del valor acumulado</p>
+      </article>
+
+      <article class="stat card">
+        <p class="stat-label"><i class="dot dot-labor"></i> Mano de obra</p>
+        <p class="stat-value">{{ totals().labor | money }}</p>
+        <p class="stat-note">{{ share(totals().labor, totals().total) }}% del valor acumulado</p>
+      </article>
+
+      <article class="stat stat-total">
+        <p class="stat-label">Precio de tus obras</p>
+        <p class="stat-value">{{ totals().total | money }}</p>
+        <p class="stat-note">Materiales + mano de obra</p>
+      </article>
+    </div>
+
+    <section class="works-section">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Registro</p>
+          <h2>Tus obras</h2>
+        </div>
+        <span class="badge">{{ works().length }} {{ works().length === 1 ? 'obra' : 'obras' }}</span>
+      </div>
+
+      @if (works().length === 0) {
+        <div class="empty">
+          <div class="empty-figure" aria-hidden="true">
+            <span>M</span>
+            <i class="measure measure-x"></i>
+            <i class="measure measure-y"></i>
+          </div>
+          <h3>Tu primera obra empieza con una partida.</h3>
+          <p class="muted">
+            Crea una obra, agrega los materiales y la mano de obra con sus precios. Nosotros
+            hacemos las cuentas.
+          </p>
+          <a class="btn btn-primary" routerLink="/obras/nueva">Crear mi primera obra</a>
+        </div>
+      } @else {
+        <div class="work-list">
+          @for (work of works(); track work.id) {
+            <article class="work-row card">
+              <a class="work-main" [routerLink]="['/obras', work.id]">
+                <div class="work-title">
+                  <h3>{{ work.name }}</h3>
+                  <p>
+                    {{ work.clientName || 'Sin cliente' }}
+                    <span aria-hidden="true">·</span>
+                    {{ work.location || 'Sin ubicación' }}
+                  </p>
+                </div>
+
+                <div class="work-metrics">
+                  <div class="metric">
+                    <span>Partidas</span>
+                    <b class="mono">{{ work.itemCount }}</b>
+                  </div>
+                  <div class="metric">
+                    <span>Materiales</span>
+                    <b class="mono">{{ work.materialTotal | money }}</b>
+                  </div>
+                  <div class="metric">
+                    <span>Mano de obra</span>
+                    <b class="mono">{{ work.laborTotal | money }}</b>
+                  </div>
+                  <div class="metric metric-total">
+                    <span>Total</span>
+                    <b class="mono">{{ work.total | money }}</b>
+                  </div>
+                </div>
+
+                <div class="work-bar" aria-hidden="true">
+                  <span class="mat" [style.width.%]="share(work.materialTotal, work.total)"></span>
+                  <span class="lab" [style.width.%]="share(work.laborTotal, work.total)"></span>
+                </div>
+
+                <div class="work-foot">
+                  <span class="mono">Actualizada {{ formatDate(work.updatedAt) }}</span>
+                  <span class="open">Abrir <span aria-hidden="true">→</span></span>
+                </div>
+              </a>
+
+              <button
+                class="row-delete"
+                type="button"
+                [attr.aria-label]="'Eliminar la obra ' + work.name"
+                (click)="remove(work, $event)"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16M10 11v6M14 11v6" />
+                  <path d="M6 7l1 13h10l1-13M9 7V4h6v3" />
+                </svg>
+              </button>
+            </article>
+          }
+        </div>
+      }
+    </section>
+  }
+</section>

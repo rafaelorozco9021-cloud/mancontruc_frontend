@@ -1,0 +1,86 @@
+<div class="shell">
+  <aside class="rail">
+    <a class="brand" routerLink="/" aria-label="ManConstruc, ir al panel de obras">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span class="brand-word">MAN<b>CONSTRUC</b></span>
+    </a>
+
+    <nav class="rail-nav" aria-label="Navegación principal">
+      <a
+        class="rail-link"
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        <span>Obras</span>
+      </a>
+      <a class="rail-link" routerLink="/obras/nueva" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        <span>Nueva</span>
+      </a>
+    </nav>
+
+    <div class="rail-foot">
+      <div class="user-chip" [title]="user()?.fullName ?? ''">
+        <span>{{ initials() }}</span>
+        <i></i>
+      </div>
+      <button class="rail-link as-button" type="button" (click)="logout()">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+          <path d="M10 17l5-5-5-5M15 12H3" />
+        </svg>
+        <span>Salir</span>
+      </button>
+      <p class="rail-year">{{ year }}</p>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <header class="mobile-bar">
+      <a class="brand brand-compact" routerLink="/">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span class="brand-word">MAN<b>CONSTRUC</b></span>
+      </a>
+      <div class="mobile-user">
+        <div class="user-chip"><span>{{ initials() }}</span><i></i></div>
+        <button class="icon-button" type="button" (click)="logout()" aria-label="Cerrar sesión">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+            <path d="M10 17l5-5-5-5M15 12H3" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="stage-main">
+      <router-outlet />
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Navegación móvil">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+      Obras
+    </a>
+    <a routerLink="/obras/nueva" routerLinkActive="active">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+      Nueva obra
+    </a>
+  </nav>
+</div>
